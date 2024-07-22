@@ -5,12 +5,13 @@ import os
 # from ftplib import FTP
 import paramiko
 
+from config.settings import setting
 
-access_key = "FfjC7jIZxpZjXZHjjJj4"
-secret_key = "6xjgZjLOyMvh17oSg3qO0UiaIC0uXeY1lVbwzpwo"
+access_key = setting.access_key
+secret_key = setting.secret_key
 
 client = Minio(
-    "job.xhub.co.kr:9000",
+    setting.minio_url,
     access_key=access_key,
     secret_key=secret_key,
     secure=True
@@ -110,14 +111,14 @@ def run(today:datetime.date):
     today_str = today.strftime('%Y%m%d')
     today_yyyy_slash_mm = today.strftime('%Y/%m')
     folder_path = "./download"
-    ftp_host = '10.81.220.112'
-    ftp_port = 22
-    ftp_username = 'e2on'
-    ftp_password = 'nicee2!!'
-    ftp_directory = f"/home/incoming/business_no/{today_yyyy_slash_mm}"
+    ftp_host = setting.ftp_host
+    ftp_port = setting.ftp_port
+    ftp_username = setting.ftp_username
+    ftp_password = setting.ftp_password
+    ftp_directory = f"{setting.ftp_base_directory_path}/{today_yyyy_slash_mm}"
 
     delete_files_in_folder(folder_path)
-    bucket_name = "bstatus"
+    bucket_name = setting.bucket_name
     day_list = [today_str]
     # day_list = ["20240415", "20240418", "20240419"]
 
