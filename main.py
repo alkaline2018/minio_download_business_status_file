@@ -6,6 +6,7 @@ import os
 import paramiko
 
 from config.settings import setting
+from utils.decorators import log_function_call
 
 access_key = setting.access_key
 secret_key = setting.secret_key
@@ -32,6 +33,7 @@ def delete_files_in_folder(folder_path):
             os.remove(file_path)
             print(f"{file_name} 삭제됨")
 
+@log_function_call
 def download_file(bucket_name, object_name, file_path):
     '''
 
@@ -40,13 +42,8 @@ def download_file(bucket_name, object_name, file_path):
     :param file_path:
     :return:
     '''
-    try:
-        # 파일 다운로드
-        print(object_name)
-        client.fget_object(bucket_name, object_name, file_path)
-        print(f"'{object_name}' has been downloaded successfully.")
-    except S3Error as exc:
-        print("Error occurred:", exc)
+    # 파일 다운로드
+    client.fget_object(bucket_name, object_name, file_path)
 
 
 def create_sftp_directory(sftp_host, sftp_port, sftp_username, sftp_password, directory_path):
@@ -96,19 +93,21 @@ def send_file_to_sftp(sftp_host, sftp_port, sftp_username, sftp_password, local_
     except Exception as e:
         print("파일 전송 중 오류가 발생했습니다:", e)
 
+
+@log_function_call
 def should_run(date):
     # 주어진 날짜(date)가 해당 조건을 충족하는지 확인
-    if date.day == 21 and date.weekday() < 5:  # 첫 번째 조건: 실행일이 21일이고 평일인 경우
+    if date.day == 20 and date.weekday() < 5:  # 첫 번째 조건: 실행일이 20일이고 평일인 경우
         return True
-    elif date.day == 22 and date.weekday() == 0:  # 두 번째 조건: 실행일이 22일
+    elif date.day == 21 and date.weekday() == 0:  # 두 번째 조건: 실행일이 21일
         return True
-    elif date.day == 23 and date.weekday() == 0:  # 세 번째 조건: 실행일이 23일
+    elif date.day == 22 and date.weekday() == 0:  # 세 번째 조건: 실행일이 22일
         return True
     return False
 
 def run(today:datetime.date):
 
-    today_str = today.strftime('%Y%m%d')
+    today_str = today.strftime('%Y%m%d')    # today_str = "20240821"
     today_yyyy_slash_mm = today.strftime('%Y/%m')
     folder_path = "./download"
     ftp_host = setting.ftp_host
@@ -133,8 +132,11 @@ def run(today:datetime.date):
 
 
 if __name__ == "__main__":
-    today = datetime.date.today()
+    today = datetime.date.today() - datetime.timedelta(days=1)
+    print(today)
+    # run(today=today)
     if should_run(today):
         run(today=today)
+        print("오늘은 실행일 입니다.")
     else:
         print("오늘은 실행일이 아닙니다.")
