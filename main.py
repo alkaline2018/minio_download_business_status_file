@@ -1,3 +1,5 @@
+from file_inspector import FileInspector
+from file_inspector.formatter.slack_formatter import format_slack_message
 from minio import Minio, S3Error
 
 import datetime
@@ -7,6 +9,7 @@ import paramiko
 
 from config.settings import setting
 from utils.decorators import log_function_call
+from utils.slack import send_slack_message, SlackColor
 
 access_key = setting.access_key
 secret_key = setting.secret_key
@@ -105,6 +108,55 @@ def should_run(date):
         return True
     return False
 
+def inspect_and_notify_file(
+    file_path: str, channel_id: str = "#file_inspector"
+) -> bool:
+    """
+    주어진 파일을 검사하고, 검사 결과를 슬랙 채널에 전송하는 함수입니다.
+
+    Args:
+        file_path (str): 검사할 파일의 경로
+        channel_id (str): 슬랙 채널 ID (기본값은 "#file_inspector")
+
+    Returns:
+        bool: 슬랙 메시지 전송 성공 여부 (True: 성공, False: 실패)
+    """
+    try:
+        # 파일 검사기 생성 및 검사 수행
+        inspector = FileInspector()
+        result = inspector.inspect(file_path)
+
+        # 검사 결과의 유효성 확인
+        if not result or not hasattr(result, "file_info") or not hasattr(result, "df"):
+            raise ValueError("유효하지 않은 검사 결과입니다.")
+
+        # 슬랙 메시지 포맷팅
+        slack_message = format_slack_message(result.file_info, result.df)
+
+        # 슬랙 메시지 전송
+        send_slack_message(
+            message=slack_message, channel_id=channel_id, color=SlackColor.GOOD.value
+        )
+
+        # 성공적으로 메시지를 전송한 경우 True 반환
+        return True
+
+    except Exception as e:
+        # 예외 발생 시 에러 메시지를 슬랙으로 전송
+        error_message = f"[파일 검사 실패 ❌] {file_path} 검사 중 오류 발생: {str(e)}"
+        try:
+            send_slack_message(
+                message=error_message,
+                channel_id=channel_id,
+                color=SlackColor.DANGER.value,
+            )
+        except Exception:
+            # 슬랙 전송도 실패할 경우 콘솔 출력으로 대체
+            print("Slack 메시지 전송 실패:", error_message)
+
+        # 실패했음을 나타내는 False 반환
+        return False
+
 def run(today:datetime.date):
 
     today_str = today.strftime('%Y%m%d')    # today_str = "20240821"
@@ -126,6 +178,7 @@ def run(today:datetime.date):
         success_file_path = "./_success"
         object_name = f"business_{today_str}"
         download_file(bucket_name, object_name, file_path)
+        inspect_and_notify_file(file_path=file_path)
         create_sftp_directory(ftp_host, ftp_port, ftp_username, ftp_password, ftp_directory)
         send_file_to_sftp(ftp_host, ftp_port, ftp_username, ftp_password, file_path, ftp_directory)
         send_file_to_sftp(ftp_host, ftp_port, ftp_username, ftp_password, success_file_path, ftp_directory)
