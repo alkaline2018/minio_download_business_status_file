@@ -9,6 +9,7 @@ import paramiko
 
 from config.settings import setting
 from utils.decorators import log_function_call
+from utils.minio_helper import send_file_to_minio
 from utils.slack import send_slack_message, SlackColor
 
 access_key = setting.access_key
@@ -179,13 +180,21 @@ def run(today:datetime.date):
         object_name = f"business_{today_str}"
         download_file(bucket_name, object_name, file_path)
         inspect_and_notify_file(file_path=file_path)
+        send_file_to_minio(file_path)
         create_sftp_directory(ftp_host, ftp_port, ftp_username, ftp_password, ftp_directory)
         send_file_to_sftp(ftp_host, ftp_port, ftp_username, ftp_password, file_path, ftp_directory)
         send_file_to_sftp(ftp_host, ftp_port, ftp_username, ftp_password, success_file_path, ftp_directory)
 
 
 if __name__ == "__main__":
+    # NOTE: 임시로 돌리고 싶을 때 쓰는 거
+    # date_str = "2025-04-21"  # 원하는 날짜 입력 (YYYY-MM-DD 형식)
+    # today = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+    # run(today=today)
+    # NOTE:----------------------
+
     today = datetime.date.today() - datetime.timedelta(days=1)
+
     print(today)
     # run(today=today)
     if should_run(today):
