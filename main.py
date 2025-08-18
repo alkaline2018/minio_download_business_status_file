@@ -23,7 +23,7 @@ client = Minio(
 )
 
 
-def delete_files_in_folder(folder_path):
+def delete_files_in_folder(folder_path: str) -> None:
     # 해당 폴더 안의 파일 목록을 가져옴
     file_list = os.listdir(folder_path)
 
@@ -38,19 +38,24 @@ def delete_files_in_folder(folder_path):
             print(f"{file_name} 삭제됨")
 
 @log_function_call
-def download_file(bucket_name, object_name, file_path):
-    '''
+def download_file(bucket_name: str, object_name: str, file_path: str) -> None:
+    """
+    Downloads a file from the specified bucket and object name, saving it to the
+    specified file path. Utilizes a client to perform the file download operation.
 
-    :param bucket_name:
-    :param object_name:
-    :param file_path:
-    :return:
-    '''
+    Args:
+        bucket_name: The name of the bucket from which to download the file.
+        object_name: The name of the object to be downloaded.
+        file_path: The local file path where the downloaded file will be saved.
+
+    Returns:
+        None
+    """
     # 파일 다운로드
     client.fget_object(bucket_name, object_name, file_path)
 
 
-def create_sftp_directory(sftp_host, sftp_port, sftp_username, sftp_password, directory_path):
+def create_sftp_directory(sftp_host, sftp_port, sftp_username, sftp_password, directory_path) -> None:
     try:
         # SSH 클라이언트 생성
         ssh_client = paramiko.SSHClient()
@@ -73,7 +78,33 @@ def create_sftp_directory(sftp_host, sftp_port, sftp_username, sftp_password, di
         print("디렉토리 생성 중 오류가 발생했습니다:", e)
 
 
-def send_file_to_sftp(sftp_host, sftp_port, sftp_username, sftp_password, local_file_path, remote_directory):
+def send_file_to_sftp(sftp_host: str, sftp_port: int, sftp_username: str, sftp_password: str, local_file_path: str, remote_directory: str = "./"):
+    """
+    Uploads a local file to a remote SFTP server.
+
+    This function establishes an SSH connection to the specified SFTP host, opens an
+    SFTP session, and uploads the provided file from the local machine to the
+    specified remote directory on the SFTP server. It handles both the connection
+    management and file transfer.
+
+    Parameters:
+        sftp_host: str
+            The hostname or IP address of the SFTP server.
+        sftp_port: int
+            The port number for the SFTP server connection.
+        sftp_username: str
+            The username for authentication with the SFTP server.
+        sftp_password: str
+            The password for authentication with the SFTP server.
+        local_file_path: str
+            The full path to the local file that will be transferred.
+        remote_directory: str
+            The remote directory where the file will be uploaded.
+
+    Raises:
+        Exception
+            If any error occurs during the file transfer process.
+    """
     try:
         # SSH 클라이언트 생성
         ssh_client = paramiko.SSHClient()
@@ -99,8 +130,23 @@ def send_file_to_sftp(sftp_host, sftp_port, sftp_username, sftp_password, local_
 
 
 @log_function_call
-def should_run(date):
+def should_run(date: datetime.date) -> bool:
+    """
+    Checks if the provided date meets specific conditions for execution.
+
+    This function evaluates whether the given date matches certain conditions,
+    such as being on specific days of the month and falling on a weekday or
+    specific weekdays. It is used to determine if the given date should trigger
+    specific actions based on those conditions.
+
+    Args:
+        date (datetime.date): The date to be checked against the conditions.
+
+    Returns:
+        bool: True if the date meets any of the conditions; False otherwise.
+    """
     # 주어진 날짜(date)가 해당 조건을 충족하는지 확인
+    # TODO: 1, 2, 3 로 바꿔줄 것.
     if date.day == 20 and date.weekday() < 5:  # 첫 번째 조건: 실행일이 20일이고 평일인 경우
         return True
     elif date.day == 21 and date.weekday() == 0:  # 두 번째 조건: 실행일이 21일
@@ -158,7 +204,22 @@ def inspect_and_notify_file(
         # 실패했음을 나타내는 False 반환
         return False
 
-def run(today:datetime.date):
+def run(today: datetime.date) -> None:
+    """
+    Executes a sequence of operations for file handling with daily business data.
+
+    This function performs an automated process involving file download,
+    local operations, and file transfers. It retrieves business data for
+    specific days and handles those files by processing them and transferring
+    them to appropriate locations like object storage, MinIO, and SFTP servers.
+    It uses the current date to determine the directory structure and file
+    names for the operations. Operations include cleaning up folders, file
+    inspections, creating directory structures, and file movement.
+
+    Parameters:
+        today (datetime.date): The current date used to determine the
+        directory structure and file names for the process.
+    """
 
     today_str = today.strftime('%Y%m%d')    # today_str = "20240821"
     today_yyyy_slash_mm = today.strftime('%Y/%m')
