@@ -146,12 +146,12 @@ def should_run(date: datetime.date) -> bool:
         bool: True if the date meets any of the conditions; False otherwise.
     """
     # 주어진 날짜(date)가 해당 조건을 충족하는지 확인
-    # TODO: 1, 2, 3 로 바꿔줄 것.
-    if date.day == 1 and date.weekday() < 5:  # 첫 번째 조건: 실행일이 1일이고 평일인 경우
+    # TODO: 2, 3, 4 로 바꿔줄 것.
+    if date.day == 2 and date.weekday() < 5:  # 첫 번째 조건: 실행일이 2일이고 평일인 경우
         return True
-    elif date.day == 2 and date.weekday() == 0:  # 두 번째 조건: 실행일이 2일
+    elif date.day == 3 and date.weekday() == 0:  # 두 번째 조건: 실행일이 3일
         return True
-    elif date.day == 3 and date.weekday() == 0:  # 세 번째 조건: 실행일이 3일
+    elif date.day == 4 and date.weekday() == 0:  # 세 번째 조건: 실행일이 4일
         return True
     return False
 
