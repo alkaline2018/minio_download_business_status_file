@@ -9,8 +9,9 @@ import paramiko
 
 from config.settings import setting
 from utils.decorators import log_function_call
-from utils.minio_helper import send_file_to_minio
+from utils.minio_helper import send_file_to_minio, create_object_name
 from utils.slack import send_slack_message, SlackColor
+from utils.validate_util import request_validate_data
 
 access_key = setting.access_key
 secret_key = setting.secret_key
@@ -52,6 +53,7 @@ def download_file(bucket_name: str, object_name: str, file_path: str) -> None:
         None
     """
     # 파일 다운로드
+    print(f"Downloading file from {bucket_name}/{object_name} to {file_path}")
     client.fget_object(bucket_name, object_name, file_path)
 
 
@@ -153,6 +155,8 @@ def should_run(date: datetime.date) -> bool:
         return True
     elif date.day == 4 and date.weekday() == 0:  # 세 번째 조건: 실행일이 4일
         return True
+    elif date.day == 5 and date.weekday() == 0:  # 세 번째 조건: 실행일이 4일
+        return True
     return False
 
 def inspect_and_notify_file(
@@ -242,6 +246,10 @@ def run(today: datetime.date) -> None:
         download_file(bucket_name, object_name, file_path)
         inspect_and_notify_file(file_path=file_path)
         send_file_to_minio(file_path)
+        # MinIO 업로드된 CSV object 경로로 DaedalusMark GX 검수 트리거.
+        # create_object_name 을 재사용해 실제 업로드된 object key 와 동일하게 맞춤.
+        # (_success 마커는 MinIO 에 올리지 않으며, 유틸에서도 비 CSV 는 제외됨)
+        request_validate_data(create_object_name(file_path))
         create_sftp_directory(ftp_host, ftp_port, ftp_username, ftp_password, ftp_directory)
         send_file_to_sftp(ftp_host, ftp_port, ftp_username, ftp_password, file_path, ftp_directory)
         send_file_to_sftp(ftp_host, ftp_port, ftp_username, ftp_password, success_file_path, ftp_directory)
@@ -249,7 +257,7 @@ def run(today: datetime.date) -> None:
 
 if __name__ == "__main__":
     # NOTE: 임시로 돌리고 싶을 때 쓰는 거
-    # date_str = "2025-04-21"  # 원하는 날짜 입력 (YYYY-MM-DD 형식)
+    # date_str = "2026-10-03"  # 원하는 날짜 입력 (YYYY-MM-DD 형식)
     # today = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
     # run(today=today)
     # NOTE:----------------------
