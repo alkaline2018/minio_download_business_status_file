@@ -1,1 +1,7 @@
 *.env*
+# 개발 폴더 분리(2026-10-06) 후 실행 환경·산출물이 커밋되지 않도록
+.venv/
+__pycache__/
+.idea/
+logs/
+download/

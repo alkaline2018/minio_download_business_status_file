@@ -129,6 +129,8 @@ def send_file_to_sftp(sftp_host: str, sftp_port: int, sftp_username: str, sftp_p
         ssh_client.close()
     except Exception as e:
         print("파일 전송 중 오류가 발생했습니다:", e)
+        # 납품 실패가 출력만 남고 묻히지 않도록 실패로 올린다 (__main__에서 Slack 알림)
+        raise
 
 
 @log_function_call
@@ -255,19 +257,44 @@ def run(today: datetime.date) -> None:
         send_file_to_sftp(ftp_host, ftp_port, ftp_username, ftp_password, success_file_path, ftp_directory)
 
 
-if __name__ == "__main__":
-    # NOTE: 임시로 돌리고 싶을 때 쓰는 거
-    # date_str = "2026-10-03"  # 원하는 날짜 입력 (YYYY-MM-DD 형식)
-    # today = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
-    # run(today=today)
-    # NOTE:----------------------
+def notify_failure(target_date: datetime.date, error: Exception) -> None:
+    """실행 실패를 Slack으로 알린다. (2026-10 정기 실행 4회 실패가 로그에만 남고 묻혔던 문제 대응)"""
+    message = (
+        f"[전사업자번호 파일 송수신 실패 ❌] 대상일 {target_date:%Y-%m-%d}\n"
+        f"{type(error).__name__}: {error}\n"
+        f"수동 재실행: python main.py --date {target_date:%Y-%m-%d}"
+    )
+    try:
+        send_slack_message(
+            message=message, channel_id="#file_inspector", color=SlackColor.DANGER.value
+        )
+    except Exception:
+        print("Slack 메시지 전송 실패:", message)
 
-    today = datetime.date.today() - datetime.timedelta(days=1)
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="전사업자번호 파일 MinIO → SFTP 송수신")
+    # NOTE: 수동 재실행은 코드의 날짜를 고치지 말고 이 인자로 한다.
+    #       (2026-09 수동 실행 때 고친 날짜가 남아 10월 정기 실행이 전부 9/7 파일을 찾다 실패했음)
+    parser.add_argument(
+        "--date", help="이 날짜(YYYY-MM-DD) 파일을 실행일 조건과 상관없이 처리한다"
+    )
+    args = parser.parse_args()
+
+    if args.date:
+        today = datetime.datetime.strptime(args.date, "%Y-%m-%d").date()
+    else:
+        today = datetime.date.today() - datetime.timedelta(days=1)
 
     print(today)
-    # run(today=today)
-    if should_run(today):
-        run(today=today)
+    if args.date or should_run(today):
+        try:
+            run(today=today)
+        except Exception as e:
+            notify_failure(today, e)
+            raise
         print("오늘은 실행일 입니다.")
     else:
         print("오늘은 실행일이 아닙니다.")
